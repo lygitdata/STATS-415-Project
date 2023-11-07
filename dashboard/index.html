@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, shrink-to-fit=no">
+<link rel="icon" type="image/x-icon" href="https://static.gd.edu.kg/images/logo-100-white.png">
+<title>Fall 2023 STATS 415 Project Dashboard | Group 20</title>
+<meta name="description" content="Fall 2023 STATS 415 Project Dashboard | Group 20">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ELSZ3SFQ2D"></script><script>function gtag(){dataLayer.push(arguments)}window.dataLayer=window.dataLayer||[],gtag("js",new Date),gtag("config","G-ELSZ3SFQ2D")</script>
+<!-- Google / Search Engine Tags -->
+<meta itemprop="name" content="Fall 2023 STATS 415 Project Dashboard | Group 20">
+<meta itemprop="description" content="Fall 2023 STATS 415 Project Dashboard | Group 20">
+<meta itemprop="image" content="https://www.gd.edu.kg/images/cover.jpg">
+
+<!-- Facebook Meta Tags -->
+<meta property="og:url" content="https://stats415.ly.gd.edu.kg/dashboard/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Fall 2023 STATS 415 Project Dashboard | Group 20">
+<meta property="og:description" content="Fall 2023 STATS 415 Project Dashboard | Group 20">
+<meta property="og:image" content="https://www.gd.edu.kg/images/cover.jpg">
+
+<!-- Twitter Meta Tags -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Fall 2023 STATS 415 Project Dashboard | Group 20">
+<meta name="twitter:description" content="Fall 2023 STATS 415 Project Dashboard | Group 20">
+<meta name="twitter:image" content="https://www.gd.edu.kg/images/cover.jpg">
+<!-- Stylesheet
+============================== -->
+<!-- Bootstrap -->
+<link rel="stylesheet" type="text/css" href="https://static.gd.edu.kg/css/kb/bootstrap.min.css" />
+<!-- Font Awesome Icon -->
+<link rel="stylesheet" type="text/css" href="https://static.gd.edu.kg/css/kb/all.min.css" />
+<!-- Magnific Popup -->
+<link rel="stylesheet" type="text/css" href="https://static.gd.edu.kg/css/kb/magnific-popup.min.css" />
+<!-- Highlight Syntax -->
+<link rel="stylesheet" type="text/css" href="https://static.gd.edu.kg/css/kb/github.css" />
+<!-- Custom Stylesheet -->
+<link rel="stylesheet" type="text/css" href="https://static.gd.edu.kg/css/kb/stylesheet.css" />
+<script src="https://static.gd.edu.kg/js/confetti.browser.min.js"></script>
+<!--<script>
+var duration = 15 * 1000;
+var animationEnd = Date.now() + duration;
+var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+function randomInRange(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+var interval = setInterval(function() {
+  var timeLeft = animationEnd - Date.now();
+
+  if (timeLeft <= 0) {
+    return clearInterval(interval);
+  }
+
+  var particleCount = 50 * (timeLeft / duration);
+  // since particles fall down, start a bit higher than random
+  confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+  confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+}, 250);  
+</script>-->
+</head>
+
+<body data-spy="scroll" data-target=".idocs-navigation" data-offset="125">
+<!-- Preloader -->
+<div class="preloader">
+  <div class="lds-ellipsis">
+    <div></div>
+    <div></div>
+    <div></div>
+    <div></div>
+  </div>
+</div>
+<!-- Preloader End --> 
+
+<!-- Document Wrapper   
+=============================== -->
+<div id="main-wrapper"> 
+  
+  <!-- Header
+  ============================ -->
+  <header id="header" class="sticky-top">
+    <!-- Navbar -->
+    <nav class="primary-menu navbar navbar-expand-lg navbar-dropdown-dark">
+      <div class="container-fluid">
+        <!-- Sidebar Toggler -->
+        <button id="sidebarCollapse" class="navbar-toggler d-block d-md-none" type="button"><span></span><span class="w-75"></span><span class="w-50"></span></button>
+        
+        <!-- Logo --> 
+        <span class="text-2 ml-2"></span> 
+        <!-- Logo End -->
+        
+        <!-- Navbar Toggler -->
+        <button class="navbar-toggler ml-auto" type="button" data-toggle="collapse" data-target="#header-nav"><span></span><span></span><span></span></button>
+        
+        <div id="header-nav" class="collapse navbar-collapse justify-content-end">
+          <ul class="navbar-nav">
+            <li><a href="https://www.gd.edu.kg/">Home</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <center><p id="countdown1" style="background-color:#ff0000;color:white;margin:0;font-size:13px;"></p></center>
+    <!-- Navbar End --> 
+  </header>
+  <!-- Header End --> 
+  
+  <!-- Content
+  ============================ -->
+  <div id="content" role="main">
+    
+    <!-- Sidebar Navigation
+    ============================ -->
+    <div class="idocs-navigation bg-light">
+      <ul class="nav flex-column ">
+	<br>
+	<br>
+        <li class="nav-item"><a class="nav-link active" href="#idocs_start">ITU 5G Challenge 2023 Dashboard</a>
+          <ul class="nav flex-column">
+	    <li class="nav-item"><a class="nav-link" href="#timelinie">Timeline</a></li>
+            <li class="nav-item"><a class="nav-link" href="#authors">Authors</a></li>
+            <li class="nav-item"><a class="nav-link" href="#web">Project Website</a></li>
+            <li class="nav-item"><a class="nav-link" href="#github">GitHub Repository</a></li>
+            <li class="nav-item"><a class="nav-link" href="#doc">Google Doc</a></li>
+	    <li class="nav-item"><a class="nav-link" href="#jupyter">Jupyter Notebook</a></li>
+            <li class="nav-item"><a class="nav-link" href="#schedule">Schedule</a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+   
+    <!-- Docs Content
+    ============================ -->
+    <div class="idocs-content">
+      <div class="container">
+        <!-- Getting Started
+        ============================ -->
+        <section id="idocs_start">
+        <h1>ITU 5G Challenge 2023 Dashboard | GitData</h1>
+        <p><em>Last update: </em> October 13, 2023</p>
+        <p>This project is for <a href="https://challenge.aiforgood.itu.int/match/matchitem/83" target="_blank">5G-Energy Consumption Modelling Challenge</a> hosted by the <a href="https://www.itu.int/" target="_blank">International Telecommunication Union (ITU)</a> on <a href="https://zindi.africa/competitions/aiml-for-5g-energy-consumption-modelling" target="_blank">Zindi</a>.</p>
+        <HR>
+    <section id="timelinie">
+         <h2>Timeline</h2>
+         <p>07/05/2023 - Competition Phase Start</p>
+	 <p>10/13/2023 - Competition Phase End (<b>Deadline 1</b> - submit prediction result for evaluation)</p>
+	 <p>10/25/2023 - Report End (<b>Deadline 2</b> - submit report for evaluation)</p>
+    </section>
+    <HR>
+    <section id="authors">
+         <h2>Authors</h2>
+           <p class="lead">Here are the members of our group and their institutions with contact information (alphabetical order by last name):</p>
+            <ol>
+            <strong><li>Author 1:</li></strong>
+            <p></p>
+            <p><strong>Name: </strong>Zhilu Chen</p>
+            <p><strong>Current Institution: </strong>University of California, Davis</p>
+            <p><strong>School email: </strong><img src="https://www.gd.edu.kg/images/emails/lucch.png"/></p>
+            <!--<p><strong>GitData email: </strong>zchen@gd.edu.kg </p>-->
+	    <strong><li>Author 2:</li></strong>
+            <p></p>
+            <p><strong>Name: </strong>Rui Hu</p>
+            <p><strong>Current Institution: </strong>California State University, San Bernardino</p>
+            <!--<p><strong>School email: </strong><img src="https://www.gd.edu.kg/images/emails/hengyuanliu.png"/></p>
+            <p><strong>GitData email: </strong>hliu@gd.edu.kg </p>-->
+            <strong><li>Author 3:</li></strong>
+            <p></p>
+            <p><strong>Name: </strong>Hengyuan Liu</p>
+            <p><strong>Current Institution: </strong>University of California, Los Angeles</p>
+            <p><strong>School email: </strong><img src="https://www.gd.edu.kg/images/emails/hengyuanliu.png"/></p>
+            <p><strong>GitData email: </strong>hliu@gd.edu.kg </p>
+            <strong><li>Author 4:</li></strong>
+            <p></p>
+            <p><strong>Name: </strong>Li Yuan</p>
+            <p><strong>Current Institution: </strong>University of Michigan, Ann Arbor</p>
+            <p><strong>School email: </strong><img src="https://www.gd.edu.kg/images/emails/leeyuan.png"/></p>
+            <p><strong>GitData email: </strong>lyuan@gd.edu.kg </p>
+    </section>
+    <HR>
+    <section id="web">
+         <h2>Project Website</h2>
+         <p>The following is the website for this project.</p>
+         <a href="https://itu5g.gd.edu.kg/" target="_blank">https://itu5g.gd.edu.kg/</a>
+    </section>
+    <HR>
+    <section id="github">
+         <h2>GitHub Repository</h2>
+         <p>All the resources are stored in the following GitHub repository: <br></p>
+         <a href="https://github.com/GitData-GA/itu5g/" target="_blank">https://github.com/GitData-GA/itu5g/</a>
+    </section>
+    <HR>
+    <section id="doc">
+         <h2>Google Doc</h2>
+	 <p>This Google Doc contains information about the datasets and some thoughts about the competition: <br></p>
+         <a href="https://docs.google.com/document/d/1eKPIBkU6yDNy1Mq53J0tLFx8Ce5Vg97cLwMxXfqV454/edit?usp=sharing" target="_blank">Open link in new window</a>
+    </section>
+    <HR>
+    <section id="jupyter">
+         <h2>Jupyter Notebook</h2>
+	 <p style="color:red;">Please make a copy of this Jupyter Notebook to your own Google Drive or local machine before changing anything.</p>
+	 <p>Jupyter Notebook is the main IDE for this project, there are two ways to get the Jupyter Notebook:<br></p>
+         <li><b>Google Colab: </b><a href="https://colab.research.google.com/drive/16G7l07BY--Hd6qneReYDlVoklt30uhKp?usp=sharing" target="_blank">Open linik in new window</a></li>
+	 <li><b>GitHub Repository: </b><a href="https://github.com/GitData-GA/itu5g/blob/main/code/ITU_5G_Energy_Consumption_Challenge.ipynb" target="_blank">Open link in new window</a></li>
+    </section>
+    <HR>
+    <section id="schedule">
+         <h2>Schedule</h2>
+         <div id='calendar' style="width:80%;height:80%"></div>
+    </section>
+    <HR>
+      </div>
+    </div>
+    
+  </div>
+  <!-- Content end --> 
+  
+  <!-- Footer
+  ============================ -->
+  <footer id="footer" class="section bg-dark footer-text-light">
+    <div class="container">
+      <p class="text-center">&copy; <script type="text/JavaScript"> document.write(new Date().getFullYear()) </script> GitData</p>
+    </div>
+  </footer>
+  <!-- Footer end -->
+  
+</div>
+<!-- Document Wrapper end --> 
+
+<!-- Back To Top --> 
+<a id="back-to-top" data-toggle="tooltip" title="Back to Top" href="javascript:void(0)"><i class="fa fa-chevron-up"></i></a> 
+
+<!-- JavaScript
+============================ -->
+<!-- jQuery -->
+<script src="https://static.gd.edu.kg/js/kb/jquery.min.js"></script> 
+<!-- Calendar -->
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.4/index.global.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/@fullcalendar/google-calendar@6.1.4/index.global.min.js'></script>
+<script type='text/javascript'>
+  document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      googleCalendarApiKey: 'AIzaSyBOaURCQjwlrnbtlEFKfflUEAJpqguuwAk',
+      events: {
+          googleCalendarId: 'c_0a27732e0509d7661919a1eb44a5ca97f7e20367424138647ed10de6aec9dd29@group.calendar.google.com',
+        }
+    });
+
+    calendar.render();
+  });
+
+</script>
+<!-- BootStrap -->
+<script src="https://static.gd.edu.kg/js/kb/bootstrap.bundle.min.js"></script> 
+<!-- Highlight JS -->
+<script src="https://static.gd.edu.kg/js/kb/highlight.min.js"></script> 
+<!-- Easing --> 
+<script src="https://static.gd.edu.kg/js/kb/jquery.easing.min.js"></script> 
+<!-- Magnific Popup --> 
+<script src="https://static.gd.edu.kg/js/kb/jquery.magnific-popup.min.js"></script> 
+<!-- Custom Script -->
+<script src="https://static.gd.edu.kg/js/kb/theme.js"></script>
+<!-- Deadline Count Down-->
+<script>var remotetime1 = new Date('10/25/2023 11:59:59 PM UTC+0'); var localtime1 = remotetime1.toString(); var zone = new Date(localtime1).toLocaleTimeString('en-us',{timeZoneName:'short'}).split(' ')[2]; var localtime1array = localtime1.split(/(\s+)/); var countDownDate1=new Date(localtime1).getTime(),x=setInterval(function(){var e=(new Date).getTime(),t=countDownDate1-e,n=Math.floor(t/864e5),o=Math.floor(t%864e5/36e5),a=Math.floor(t%36e5/6e4),r=Math.floor(t%6e4/1e3),u="";u=n<=1?" day ":" days ";var c="";c=o<=1?" hour ":" hours ";var d="";d=a<=1?" minute ":" minutes ";var l="";l=r<=1?" second ":" seconds ",document.getElementById("countdown1").innerHTML="Deadline 2 ("+localtime1array.slice(2, 9).join("")+" "+zone+"): "+n+u+o+c+a+d+r+l+" left",t<0&&(clearInterval(x),document.getElementById("countdown1").innerHTML="EXPIRED!")},1e3)</script>
+</body>
+</html>
