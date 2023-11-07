@@ -38,28 +38,6 @@
 <!-- Custom Stylesheet -->
 <link rel="stylesheet" type="text/css" href="https://static.gd.edu.kg/css/kb/stylesheet.css" />
 <script src="https://static.gd.edu.kg/js/confetti.browser.min.js"></script>
-<!--<script>
-var duration = 15 * 1000;
-var animationEnd = Date.now() + duration;
-var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-function randomInRange(min, max) {
-  return Math.random() * (max - min) + min;
-}
-
-var interval = setInterval(function() {
-  var timeLeft = animationEnd - Date.now();
-
-  if (timeLeft <= 0) {
-    return clearInterval(interval);
-  }
-
-  var particleCount = 50 * (timeLeft / duration);
-  // since particles fall down, start a bit higher than random
-  confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
-  confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
-}, 250);  
-</script>-->
 </head>
 
 <body data-spy="scroll" data-target=".idocs-navigation" data-offset="125">
@@ -88,6 +66,7 @@ var interval = setInterval(function() {
         <button id="sidebarCollapse" class="navbar-toggler d-block d-md-none" type="button"><span></span><span class="w-75"></span><span class="w-50"></span></button>
         
         <!-- Logo --> 
+	<a class="logo ml-md-3" href="/"> <img src="data:image/svg+xml;base64,PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA4MCA1Ny4yMSI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiNmZmNiMDU7fTwvc3R5bGU+PC9kZWZzPjx0aXRsZT5CbG9ja19NLUhleDwvdGl0bGU+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMzk2Ljg5LDMyNC41N2wtMTYuMzctMjIuMzl2MTYuMjlIMzg3djE2LjA5SDM1Ni44OVYzMTguNDdIMzYzdi0yNWgtNi4xMVYyNzcuMzZoMjMuNjhsMTYuMzIsMjIuNTQsMTYuMzEtMjIuNTRoMjMuNjl2MTYuMDhoLTYuMTR2MjVoNi4xNHYxNi4wOUg0MDYuNzdWMzE4LjQ3aDYuNDlWMzAyLjE4WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTM1Ni44OSAtMjc3LjM2KSIvPjwvc3ZnPg==" width=50px/> </a> 
         <span class="text-2 ml-2"></span> 
         <!-- Logo End -->
         
@@ -96,8 +75,6 @@ var interval = setInterval(function() {
         
         <div id="header-nav" class="collapse navbar-collapse justify-content-end">
           <ul class="navbar-nav">
-            <li><a href="https://www.gd.edu.kg/">Home</a>
-            </li>
           </ul>
         </div>
       </div>
