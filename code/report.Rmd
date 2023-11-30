@@ -1,0 +1,247 @@
+---
+title: "Predictive Modeling of Blood Pressure Categories: Integrating Demographic and Dietary Factors for Personalized Management"
+authors:
+  - name: Alexander Hawthorne
+    affiliation: University of Michigan
+    location: Ann Arbor, MI
+    email: hawthoal@umich.edu
+  - name: Evelyn Paskhaver
+    affiliation: University of Michigan
+    location: Ann Arbor, MI
+    email: evelynpa@umich.edu
+  - name: Jeanne Yang
+    affiliation: University of Michigan
+    location: Ann Arbor, MI
+    email: jeayang@umich.edu
+  - name: Li Yuan
+    affiliation: University of Michigan
+    location: Ann Arbor, MI
+    email: lyuan@gd.edu.kg
+bibliography: references.bib
+biblio-style: unsrt
+output: rticles::arxiv_article
+header-includes:
+   - \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+rm(list = ls())
+knitr::opts_chunk$set(echo = TRUE)
+set.seed(88)
+library(caret)
+library(dplyr)
+library(GGally)
+library(ggpubr)
+library(glmnet)
+library(grid)
+library(gridExtra)
+library(haven)
+library(knitr)
+library(patchwork)
+library(pROC)
+library(tidyr)
+library(xgboost)
+knitr::opts_chunk$set(fig.pos = "ht", out.extra = "")
+```
+
+# Data
+
+## Overview
+
+According to the @centersfordiseasecontrolandprevention_2023_20192020, NHANES field operations were suspended in March 2020 because of COVID-19. Consequently, data collection for the NHANES 2019-2020 cycle was incomplete, rendering it non-nationally representative. In response to the disruption caused by the COVID-19 pandemic, we only use the data collected in the 2017-2018 cycle to ensure the study's relevance and generalizability to the U.S. civilian non-institutionalized population. 
+
+NHANES employs a complex, multistage probability design for sampling the civilian, noninstitutionalized population in the U.S. In 2017-2018, 16,211 persons were selected from 30 survey locations, with 9,254 completing interviews and 8,704 undergoing examinations. Each participant has a unique identification number `SEQN`. To ensure representation, materials were translated into various languages, and cultural competency training was provided to staff.
+
+In the context of this study, the most important data we selected is the examination data of blood pressure (`BPX_J`), which "provides data for three consecutive blood pressure (BP) measurements and other methodological measurements to obtain an accurate BP. Heart rate or pulse, depending on age, are also reported [@centersfordiseasecontrolandprevention_2020_20172018]." This data contains 4 readings of systolic blood pressure and 4 readings of diastolic blood pressure for each participant. In order to create a response variable about blood pressure level (`BPXLEVEL`), we first average the 4 readings of systolic blood pressure and diastolic blood pressure of each participant respectively. Systolic and diastolic blood pressure may be correlated, and by predicting both levels simultaneously through a single model allows for capturing potential dependencies and may result in a model that more successfully generalizes the underlying patterns. Thus, we follow the definition of normal, elevated, and hypertension provided by @centersfordiseasecontrolandprevention_2021_facts to divide our average systolic blood pressure and diastolic blood pressure into two blood pressure levels shown in table 1.
+
+```{r data-clean1, include=FALSE}
+findNonNAColumns = function(data) {
+  return(colnames(data)[apply(data, 2, function(col) all(!is.na(col)))])
+}
+# Import 2017 - 2018 blood pressure data
+# Doc: https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/BPX_J.htm
+BPX_J = read_xpt("https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/BPX_J.XPT")
+BPX_J = BPX_J %>%
+  mutate(BPXSYAVG = rowMeans(select(., starts_with("BPXSY")), na.rm = TRUE),
+         BPXDIAVG = rowMeans(select(., starts_with("BPXDI")), na.rm = TRUE)) %>%
+  filter(complete.cases(BPXSYAVG, BPXDIAVG)) %>%
+  mutate(BPXLEVEL = case_when(
+    # Normal blood pressure
+    BPXSYAVG < 120 & BPXDIAVG < 80 ~ 0,
+    # Elevated blood pressure or Hypertension
+    (BPXSYAVG >= 120) | (BPXDIAVG >= 80) ~ 1
+  ))
+columns_no_na = findNonNAColumns(BPX_J)
+BPX_J = BPX_J[c("BPXLEVEL", "SEQN", "BPACSZ", "BPXPLS",
+                "BPXPTY", "BPXSYAVG", "BPXDIAVG")]
+BPX_J = BPX_J %>%
+  mutate(
+    BPXLEVEL = as.factor(BPXLEVEL),
+    BPACSZ = as.factor(BPACSZ),
+    BPXPTY = as.factor(BPXPTY)
+  )
+BPXAVG = BPX_J[,c(6, 7)]
+BPX_J = BPX_J[,-c(6, 7)]
+```
+
+\begin{table}[ht]
+  \caption{Blood Pressure Levels Divided by Systolic and Diastolic Blood Pressure}
+  \centering
+  \begin{tabular}{llll}
+    \toprule
+    Blood Pressure Levels & Systolic Blood Pressure &  & Diastolic Blood Pressure \\
+    \midrule
+    Normal (\texttt{BPXLEVEL} = 0)              & $<$ 120 mmHg            & and & $<$ 80 mmHg          \\
+    Elevated or Hypertension (\texttt{BPXLEVEL} = 1)        & $\geq$ 120 mmHg         & or  & $\geq$ 80 mmHg        \\
+    \bottomrule
+  \end{tabular}
+  \label{tab:blood_pressure}
+\end{table}
+
+Our decision to predict blood pressure as classes rather than directly is motivated by several factors. Medical terminology regarding blood pressure may be challenging for individuals without medical training to interpret. By outputting in classes, not only do we allow for easier understanding, but there may also be a possibility of integrating such a model into health apps that do not require the assistance of medical professionals. Additionally, the choice to group elevated and hypertension as one class is due to the risk of a false identification of normal blood pressure being much more harmful than a false identification of abnormal (elevated/hypertension) blood pressure.
+
+After getting the blood pressure levels (`BPXLEVEL`), we merged four other data from the NHANES, including Demographic Variables and Sample Weights (`DEMO_J`), Dietary Interview - Total Nutrient Intakes, First Day (`DR1TOT_J`), Diabetes (`DIQ_J`), and Health Insurance (`HIQ_J`), based on those participants' unique identification number `SEQN`. 
+
+Here are some description of these data:
+
+- The Demographic Variables and Sample Weights (`DEMO_J`) data "provides individual, family, and household-level information  [@centersfordiseasecontrolandprevention_2020_20172018DEMO_J]." 
+
+- The Dietary Interview - Total Nutrient Intakes, First Day (`DR1TOT_J`) data contains "detailed dietary intake information from NHANES participants. The dietary intake data are used to estimate the types and amounts of foods and beverages (including all types of water) consumed during the 24-hour period prior to the interview (midnight to midnight), and to estimate intakes of energy, nutrients, and other food components from those foods and beverages [@centersfordiseasecontrolandprevention_2020_20172018DR1TOT_J]."
+
+- The Diabetes (`DIQ_J`) data "provides personal interview data on diabetes, prediabetes, use of insulin or oral hypoglycemic medications, and diabetic retinopathy [@centersfordiseasecontrolandprevention_2020_20172018DIQ_J]."
+
+- The Health Insurance (`HIQ_J`) data "provides respondent-level interview data on insurance coverage, type of insurance coverage, coverage of prescription drugs, and uninsured status during the past 12 months [@centersfordiseasecontrolandprevention_2020_20172018HIQ_J]."
+
+By merging data, selecting relevant predictors, and removing some of blank data entries, we got a curated data frame with 6,125 observations and 80 variables. Detail about these 80 variables are shown in table 2.
+
+```{r data-clean2, include=FALSE}
+# Import 2017 - 2018 demographic data
+# Doc: https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DEMO_J.htm
+DEMO_J = read_xpt("https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DEMO_J.XPT")
+currentVar = colnames(BPX_J)
+FULLDATA = BPX_J %>% left_join(DEMO_J, by = "SEQN")
+columns_no_na1 = setdiff(findNonNAColumns(FULLDATA), currentVar)
+FULLDATA = FULLDATA[c(colnames(BPX_J), "RIAGENDR", "RIDAGEYR", "RIDRETH3", 
+                      "DMDHHSIZ", "DMDHHSZA", "DMDHHSZB", "DMDHHSZE")]
+FULLDATA = FULLDATA %>%
+  mutate(
+    RIAGENDR = as.factor(RIAGENDR),
+    RIDRETH3 = as.factor(RIDRETH3)
+  )
+
+# Import 2017 - 2018 Total Nutrient Intakes, First Day
+# Doc: https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DR1TOT_J.htm
+DR1TOT_J = read_xpt("https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DR1TOT_J.XPT")
+FULLDATA = FULLDATA %>% left_join(DR1TOT_J, by = "SEQN")
+FULLDATA = FULLDATA[, -c(13:42)]
+FULLDATA = FULLDATA[, -c(79:149)]
+FULLDATA = na.omit(FULLDATA)
+
+# Import 2017 - 2018 Diabetes
+# Doc: https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DIQ_J.htm
+currentVar = colnames(FULLDATA)
+DIQ_J = read_xpt("https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DIQ_J.XPT")
+FULLDATA = FULLDATA %>% left_join(DIQ_J, by = "SEQN")
+FULLDATA = FULLDATA[c(currentVar, "DIQ010", "DIQ050")]
+FULLDATA = FULLDATA %>%
+  mutate(
+    DIQ010 = as.factor(DIQ010),
+    DIQ050 = as.factor(DIQ050)
+  )
+
+# Import 2017 - 2018 Health Insurance
+# Doc: https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/HIQ_J.htm
+currentVar = colnames(FULLDATA)
+HIQ_J = read_xpt("https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/HIQ_J.XPT")
+FULLDATA = FULLDATA %>% left_join(HIQ_J, by = "SEQN")
+FULLDATA = FULLDATA[c(currentVar, "HIQ011")]
+FULLDATA = FULLDATA %>%
+  mutate(
+    HIQ011 = as.factor(HIQ011)
+  )
+# Prepare data for training and testing
+FULLDATA = FULLDATA[,-2]
+n.obs = nrow(FULLDATA)
+index.train = sample(seq(n.obs), floor(n.obs * 0.8), replace = FALSE)
+# Data frame train and test
+train = FULLDATA[index.train, ]
+test = FULLDATA[-index.train, ]
+train.X = train[, -1]
+train.Y = train$BPXLEVEL
+test.X = test[, -1]
+test.Y = test$BPXLEVEL
+# Model matrix train and test
+train.X.mm = model.matrix(~ . - 1, train.X)
+test.X.mm = model.matrix(~ . - 1, test.X)
+# Data frame train and test with dummy
+train.X.dummy = cbind(train.Y, as.data.frame(train.X.mm))
+colnames(train.X.dummy)[1] = "BPXLEVEL"
+test.X.dummy = cbind(test.Y, as.data.frame(test.X.mm))
+colnames(test.X.dummy)[1] = "BPXLEVEL"
+```
+
+<!-- \begin{table}[ht] -->
+<!--   \caption{Variable Names and Labels in the Curated Data Frame} -->
+<!--   \centering -->
+<!--   \begin{tabular}{p{1.45cm}p{4cm}p{1.55cm}|p{1.45cm}p{4cm}p{1.55cm}} -->
+<!--     \toprule -->
+<!--     Name & Label & Source & Name & Label & Source \\ -->
+<!--     \midrule -->
+<!--     \texttt{BPXLEVEL} & Blood pressure levels & Derived & \texttt{BPACSZ} & Coded cuff size & \texttt{BPX\textunderscore J} \\ -->
+<!--     \texttt{BPXPLS} & 60 sec. pulse & \texttt{BPX\textunderscore J} & \texttt{BPXPTY} & Pulse type & \texttt{BPX\textunderscore J} \\ -->
+<!--     \texttt{RIAGENDR} & Gender & \texttt{DEMO\textunderscore J} & \texttt{RIDAGEYR} & Age in years at screening & \texttt{DEMO\textunderscore J} \\ -->
+<!--     \texttt{RIDRETH3} & Race / Hispanic origin w/ NH Asian & \texttt{DEMO\textunderscore J} & \texttt{DMDHHSIZ} & Total number of people in the Household & \texttt{DEMO\textunderscore J} \\ -->
+<!--     \texttt{DMDHHSZA} & Number of children 5 years or younger in HH & \texttt{DEMO\textunderscore J} & \texttt{DMDHHSZB} & Number of children 6-17 years old in HH & \texttt{DEMO\textunderscore J} \\ -->
+<!--     \texttt{DMDHHSZE} & Number of adults 60 years or older in HH & \texttt{DEMO\textunderscore J} & \texttt{DR1TNUMF} & Number of foods / beverages reported & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TKCAL} & Energy (kcal) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TPROT} & Protein (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TCARB} & Carbohydrate (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TSUGR} & Total sugars (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TFIBE} & Dietary fiber (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TTFAT} & Total fat (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TSFAT} & Total saturated fatty acids (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TMFAT} & Total monounsaturated fatty acids (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TPFAT} & Total polyunsaturated fatty acids (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TCHOL} & Cholesterol (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TATOC} & Vitamin E as alpha-tocopherol (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TATOA} & Added alpha-tocopherol (Vitamin E) (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TRET} & Retinol (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TVARA} & Vitamin A, RAE (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TACAR} & Alpha-carotene (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TBCAR} & Beta-carotene (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TCRYP} & Beta-cryptoxanthin (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TLYCO} & Lycopene (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TLZ} & Lutein + zeaxanthin (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TVB1} & Thiamin (Vitamin B1) (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TVB2} & Riboflavin (Vitamin B2) (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TNIAC} & Niacin (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TVB6} & Vitamin B6 (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TFOLA} & Total folate (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TFA} & Folic acid (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TFF} & Food folate (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TFDFE} & Folate, DFE (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TCHL} & Total choline (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TVB12} & Vitamin B12 (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TB12A} & Added vitamin B12 (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TVC} & Vitamin C (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TVD} & Vitamin D (D2 + D3) (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TVK} & Vitamin K (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TCALC} & Calcium (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TPHOS} & Phosphorus (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TMAGN} & Magnesium (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TIRON} & Iron (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TZINC} & Zinc (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TCOPP} & Copper (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TSODI} & Sodium (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TPOTA} & Potassium (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TSELE} & Selenium (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TCAFF} & Caffeine (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TTHEO} & Theobromine (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TALCO} & Alcohol (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TMOIS} & Moisture (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TS040} & SFA 4:0 (Butanoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TS060} & SFA 6:0 (Hexanoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TS080} & SFA 8:0 (Octanoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TS100} & SFA 10:0 (Decanoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TS120} & SFA 12:0 (Dodecanoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TS140} & SFA 14:0 (Tetradecanoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TS160} & SFA 16:0 (Hexadecanoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TS180} & SFA 18:0 (Octadecanoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--   \end{tabular} -->
+<!--   \label{tab:variable_list1} -->
+<!-- \end{table} -->
+
+<!-- \begin{center} -->
+<!-- Table 2 (Continue): Variable Names and Labels in the Curated Data Frame -->
+<!-- \end{center} -->
+
+<!-- \begin{table}[ht] -->
+<!--   \centering -->
+<!--   \begin{tabular}{p{1.45cm}p{4cm}p{1.55cm}|p{1.45cm}p{4cm}p{1.55cm}} -->
+<!--     \toprule -->
+<!--     Name & Label & Source & Name & Label & Source \\ -->
+<!--     \midrule -->
+<!--     \texttt{DR1TM161} & MFA 16:1 (Hexadecenoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TM181} & MFA 18:1 (Octadecenoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TM201} & MFA 20:1 (Eicosenoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TM221} & MFA 22:1 (Docosenoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TP182} & PFA 18:2 (Octadecadienoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TP183} & PFA 18:3 (Octadecatrienoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TP184} & PFA 18:4 (Octadecatetraenoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TP204} & PFA 20:4 (Eicosatetraenoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TP205} & PFA 20:5 (Eicosapentaenoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TP225} & PFA 22:5 (Docosapentaenoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
+<!--     \texttt{DR1TP226} & PFA 22:6 (Docosahexaenoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DIQ010} & Doctor told you have diabetes & \texttt{DIQ\textunderscore J} \\ -->
+<!--     \texttt{DIQ050} & Taking insulin now & \texttt{DIQ\textunderscore J} & \texttt{HIQ011} & Covered by health insurance & \texttt{HIQ\textunderscore J} \\ -->
+<!--     \bottomrule -->
+<!--   \end{tabular} -->
+<!--   \label{tab:variable_list2} -->
+<!-- \end{table} -->
