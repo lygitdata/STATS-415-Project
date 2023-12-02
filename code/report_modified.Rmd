@@ -426,3 +426,8 @@ setdiff(unname(unlist(importance.matrix[1:35, 1])), intersection)
 This model exhibits higher increases in accuracy, with 0.65306% and 0.57143% improvements compared to the logistic regression model with lasso regularization and the XGBoost model using all predictors, respectively. Moreover, it demonstrates a `r 0.6887414 - 0.6791` and `r 0.6887414 - 0.6845` increase in AUC compared to the logistic regression model with lasso regularization and the XGBoost model using all predictors, respectively.
 
 Our systematic approach to feature selection not only fine-tuned the model but also provided insightful perspectives on the pivotal factors influencing its predictive power. This enhanced interpretability contributes to a more robust and effective health outcome prediction system.
+
+# Appendix: R Script
+
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
