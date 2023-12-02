@@ -132,7 +132,7 @@ FULLDATA = FULLDATA %>%
 # Doc: https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DR1TOT_J.htm
 DR1TOT_J = read_xpt("https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DR1TOT_J.XPT")
 FULLDATA = FULLDATA %>% left_join(DR1TOT_J, by = "SEQN")
-FULLDATA = FULLDATA[c("BPXLEVEL", "BPXPLS", "DR1TCARB", "DR1TPROT", "DR1TFIBE","DR1TTFAT", "DR1TCHOL", "RIAGENDR", "RIDAGEYR", "RIDRETH3")]
+FULLDATA = FULLDATA[c("BPXLEVEL", "BPXPLS", "DR1TCARB", "DR1TPROT", "DR1TFIBE","DR1TTFAT", "DR1TCHOL", "RIAGENDR", "RIDAGEYR", "RIDRETH3", "DR1TRET", "DR1TVARA", "DR1TACAR","DR1TBCAR","DR1TCRYP","DR1TLYCO")]
 FULLDATA = na.omit(FULLDATA)
 
 # Prepare data for training and testing
@@ -317,12 +317,12 @@ xgboost.train = function(col) {
   xgb.predictions = ifelse(xgb.predictions > 0.5, 1, 0)
   return(list(xgb.model, xgb.predictions))
 }
-xgboost.all = xgboost.train(colnames(train.X.dummy)[2:15])
+xgboost.all = xgboost.train(colnames(train.X.dummy)[2:21])
 mean(xgboost.all[[2]] == test.Y)
 multiclass.roc(as.numeric(test.Y) - 1,
                as.numeric(xgboost.all[[2]]) - 1)$auc
 confusionMatrix(as.factor(xgboost.all[[2]]), test.Y)
-importance.matrix = xgb.importance(colnames(train.X.dummy)[2:15], model = xgboost.all[[1]])
+importance.matrix = xgb.importance(colnames(train.X.dummy)[2:21], model = xgboost.all[[1]])
 importance.matrix
 ```
 
