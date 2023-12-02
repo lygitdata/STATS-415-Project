@@ -16,7 +16,7 @@ authors:
   - name: Li Yuan
     affiliation: University of Michigan
     location: Ann Arbor, MI
-    email: lyuan@gd.edu.kg
+    email: leeyuan@umich.edu
 bibliography: references.bib
 biblio-style: unsrt
 output: rticles::arxiv_article
@@ -48,11 +48,11 @@ knitr::opts_chunk$set(fig.pos = "ht", out.extra = "")
 
 ## Overview
 
-According to the @centersfordiseasecontrolandprevention_2023_20192020, NHANES field operations were suspended in March 2020 because of COVID-19. Consequently, data collection for the NHANES 2019-2020 cycle was incomplete, rendering it non-nationally representative. In response to the disruption caused by the COVID-19 pandemic, we only use the data collected in the 2017-2018 cycle to ensure the study's relevance and generalizability to the U.S. civilian non-institutionalized population. 
+According to the @centersfordiseasecontrolandprevention_2023_20192020, NHANES field operations were suspended in March 2020 because of COVID-19. Consequently, data collection for the NHANES 2019-2020 cycle was incomplete, rendering it non-nationally representative. In response to this disruption, we only use the data collected in the 2017-2018 cycle to ensure the study's relevance and generalizability to the U.S. civilian population. 
 
-NHANES employs a complex, multistage probability design for sampling the civilian, noninstitutionalized population in the U.S. In 2017-2018, 16,211 persons were selected from 30 survey locations, with 9,254 completing interviews and 8,704 undergoing examinations. Each participant has a unique identification number `SEQN`. To ensure representation, materials were translated into various languages, and cultural competency training was provided to staff.
+NHANES employs a complex, multistage, probability sampling design to select a sample representative of the civilian, non-institutionalized US population [@nhanes_sample]. In 2017-2018, 16,211 persons were selected from 30 survey locations, with 9,254 completing interviews and 8,704 undergoing examinations. Each participant has a unique identification number `SEQN`. To ensure representation, materials were translated into various languages, and cultural competency training was provided to staff [@nhanes_overview].
 
-In the context of this study, the most important data we selected is the examination data of blood pressure (`BPX_J`), which "provides data for three consecutive blood pressure (BP) measurements and other methodological measurements to obtain an accurate BP. Heart rate or pulse, depending on age, are also reported [@centersfordiseasecontrolandprevention_2020_20172018]." This data contains 4 readings of systolic blood pressure and 4 readings of diastolic blood pressure for each participant. In order to create a response variable about blood pressure level (`BPXLEVEL`), we first average the 4 readings of systolic blood pressure and diastolic blood pressure of each participant respectively. Systolic and diastolic blood pressure may be correlated, and by predicting both levels simultaneously through a single model allows for capturing potential dependencies and may result in a model that more successfully generalizes the underlying patterns. Thus, we follow the definition of normal, elevated, and hypertension provided by @centersfordiseasecontrolandprevention_2021_facts to divide our average systolic blood pressure and diastolic blood pressure into two blood pressure levels shown in table 1.
+In this study, the data we use to build our response variable is the examination data of blood pressure (`BPX_J`), which "provides data for three consecutive blood pressure (BP) measurements and other methodological measurements to obtain an accurate BP. Heart rate or pulse, depending on age, are also reported [@centersfordiseasecontrolandprevention_2020_20172018]." This data contains 4 readings of systolic blood pressure and 4 readings of diastolic blood pressure for each participant. In order to create a response variable about blood pressure level (`BPXLEVEL`), we first average the 4 readings of systolic blood pressure and diastolic blood pressure of each participant respectively. Systolic and diastolic blood pressure may be correlated, and predicting both levels simultaneously through a single model allows for capturing potential dependencies and may result in a model that more successfully generalizes the underlying patterns. Thus, we follow the definition of normal, elevated, and hypertension provided by @centersfordiseasecontrolandprevention_2021_facts to divide our average systolic blood pressure and diastolic blood pressure into two blood pressure levels shown in table 1.
 
 ```{r data-clean1, include=FALSE}
 findNonNAColumns = function(data) {
@@ -112,7 +112,7 @@ Here are some description of these data:
 
 - The Health Insurance (`HIQ_J`) data "provides respondent-level interview data on insurance coverage, type of insurance coverage, coverage of prescription drugs, and uninsured status during the past 12 months [@centersfordiseasecontrolandprevention_2020_20172018HIQ_J]."
 
-By merging data, selecting relevant predictors, and removing some of blank data entries, we got a curated data frame with 6,125 observations and 80 variables. Detail about these 80 variables are shown in table 2.
+By merging data, selecting relevant predictors, and removing some of the blank data entries, we were left with a data frame with 6,125 observations and 80 variables. Details regarding these 80 variables are shown in table 2.
 
 ```{r data-clean2, include=FALSE}
 # Import 2017 - 2018 demographic data
@@ -121,8 +121,7 @@ DEMO_J = read_xpt("https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DEMO_J.XPT")
 currentVar = colnames(BPX_J)
 FULLDATA = BPX_J %>% left_join(DEMO_J, by = "SEQN")
 columns_no_na1 = setdiff(findNonNAColumns(FULLDATA), currentVar)
-FULLDATA = FULLDATA[c(colnames(BPX_J), "RIAGENDR", "RIDAGEYR", "RIDRETH3", 
-                      "DMDHHSIZ", "DMDHHSZA", "DMDHHSZB", "DMDHHSZE")]
+FULLDATA = FULLDATA[c("BPXLEVEL","SEQN", "RIAGENDR", "RIDAGEYR", "RIDRETH3")]
 FULLDATA = FULLDATA %>%
   mutate(
     RIAGENDR = as.factor(RIAGENDR),
@@ -133,34 +132,10 @@ FULLDATA = FULLDATA %>%
 # Doc: https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DR1TOT_J.htm
 DR1TOT_J = read_xpt("https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DR1TOT_J.XPT")
 FULLDATA = FULLDATA %>% left_join(DR1TOT_J, by = "SEQN")
-FULLDATA = FULLDATA[, -c(13:42)]
-FULLDATA = FULLDATA[, -c(79:149)]
+FULLDATA = FULLDATA[c("BPXLEVEL", "DR1TCARB", "DR1TPROT", "DR1TFIBE","DR1TTFAT", "DR1TCHOL", "RIAGENDR", "RIDAGEYR", "RIDRETH3")]
 FULLDATA = na.omit(FULLDATA)
 
-# Import 2017 - 2018 Diabetes
-# Doc: https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DIQ_J.htm
-currentVar = colnames(FULLDATA)
-DIQ_J = read_xpt("https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/DIQ_J.XPT")
-FULLDATA = FULLDATA %>% left_join(DIQ_J, by = "SEQN")
-FULLDATA = FULLDATA[c(currentVar, "DIQ010", "DIQ050")]
-FULLDATA = FULLDATA %>%
-  mutate(
-    DIQ010 = as.factor(DIQ010),
-    DIQ050 = as.factor(DIQ050)
-  )
-
-# Import 2017 - 2018 Health Insurance
-# Doc: https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/HIQ_J.htm
-currentVar = colnames(FULLDATA)
-HIQ_J = read_xpt("https://wwwn.cdc.gov/Nchs/Nhanes/2017-2018/HIQ_J.XPT")
-FULLDATA = FULLDATA %>% left_join(HIQ_J, by = "SEQN")
-FULLDATA = FULLDATA[c(currentVar, "HIQ011")]
-FULLDATA = FULLDATA %>%
-  mutate(
-    HIQ011 = as.factor(HIQ011)
-  )
 # Prepare data for training and testing
-FULLDATA = FULLDATA[,-2]
 n.obs = nrow(FULLDATA)
 index.train = sample(seq(n.obs), floor(n.obs * 0.8), replace = FALSE)
 # Data frame train and test
@@ -180,68 +155,275 @@ test.X.dummy = cbind(test.Y, as.data.frame(test.X.mm))
 colnames(test.X.dummy)[1] = "BPXLEVEL"
 ```
 
-<!-- \begin{table}[ht] -->
-<!--   \caption{Variable Names and Labels in the Curated Data Frame} -->
-<!--   \centering -->
-<!--   \begin{tabular}{p{1.45cm}p{4cm}p{1.55cm}|p{1.45cm}p{4cm}p{1.55cm}} -->
-<!--     \toprule -->
-<!--     Name & Label & Source & Name & Label & Source \\ -->
-<!--     \midrule -->
-<!--     \texttt{BPXLEVEL} & Blood pressure levels & Derived & \texttt{BPACSZ} & Coded cuff size & \texttt{BPX\textunderscore J} \\ -->
-<!--     \texttt{BPXPLS} & 60 sec. pulse & \texttt{BPX\textunderscore J} & \texttt{BPXPTY} & Pulse type & \texttt{BPX\textunderscore J} \\ -->
-<!--     \texttt{RIAGENDR} & Gender & \texttt{DEMO\textunderscore J} & \texttt{RIDAGEYR} & Age in years at screening & \texttt{DEMO\textunderscore J} \\ -->
-<!--     \texttt{RIDRETH3} & Race / Hispanic origin w/ NH Asian & \texttt{DEMO\textunderscore J} & \texttt{DMDHHSIZ} & Total number of people in the Household & \texttt{DEMO\textunderscore J} \\ -->
-<!--     \texttt{DMDHHSZA} & Number of children 5 years or younger in HH & \texttt{DEMO\textunderscore J} & \texttt{DMDHHSZB} & Number of children 6-17 years old in HH & \texttt{DEMO\textunderscore J} \\ -->
-<!--     \texttt{DMDHHSZE} & Number of adults 60 years or older in HH & \texttt{DEMO\textunderscore J} & \texttt{DR1TNUMF} & Number of foods / beverages reported & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TKCAL} & Energy (kcal) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TPROT} & Protein (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TCARB} & Carbohydrate (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TSUGR} & Total sugars (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TFIBE} & Dietary fiber (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TTFAT} & Total fat (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TSFAT} & Total saturated fatty acids (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TMFAT} & Total monounsaturated fatty acids (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TPFAT} & Total polyunsaturated fatty acids (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TCHOL} & Cholesterol (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TATOC} & Vitamin E as alpha-tocopherol (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TATOA} & Added alpha-tocopherol (Vitamin E) (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TRET} & Retinol (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TVARA} & Vitamin A, RAE (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TACAR} & Alpha-carotene (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TBCAR} & Beta-carotene (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TCRYP} & Beta-cryptoxanthin (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TLYCO} & Lycopene (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TLZ} & Lutein + zeaxanthin (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TVB1} & Thiamin (Vitamin B1) (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TVB2} & Riboflavin (Vitamin B2) (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TNIAC} & Niacin (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TVB6} & Vitamin B6 (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TFOLA} & Total folate (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TFA} & Folic acid (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TFF} & Food folate (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TFDFE} & Folate, DFE (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TCHL} & Total choline (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TVB12} & Vitamin B12 (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TB12A} & Added vitamin B12 (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TVC} & Vitamin C (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TVD} & Vitamin D (D2 + D3) (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TVK} & Vitamin K (mcg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TCALC} & Calcium (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TPHOS} & Phosphorus (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TMAGN} & Magnesium (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TIRON} & Iron (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TZINC} & Zinc (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TCOPP} & Copper (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TSODI} & Sodium (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TPOTA} & Potassium (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TSELE} & Selenium (mcg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TCAFF} & Caffeine (mg) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TTHEO} & Theobromine (mg) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TALCO} & Alcohol (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TMOIS} & Moisture (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TS040} & SFA 4:0 (Butanoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TS060} & SFA 6:0 (Hexanoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TS080} & SFA 8:0 (Octanoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TS100} & SFA 10:0 (Decanoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TS120} & SFA 12:0 (Dodecanoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TS140} & SFA 14:0 (Tetradecanoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TS160} & SFA 16:0 (Hexadecanoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TS180} & SFA 18:0 (Octadecanoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--   \end{tabular} -->
-<!--   \label{tab:variable_list1} -->
-<!-- \end{table} -->
+## Visualization
 
-<!-- \begin{center} -->
-<!-- Table 2 (Continue): Variable Names and Labels in the Curated Data Frame -->
-<!-- \end{center} -->
+In this section, we present two scatterplot matrices that provide a comprehensive visual exploration of the dataset. The first matrix focuses on demographic information, offering insights into the relationships and distributions among key demographic variables. The second matrix encompasses macronutrient intakes, health care details, insulin usage, and the presence of diabetes. These visualizations aim to reveal potential patterns, correlations, and trends within the dataset.
 
-<!-- \begin{table}[ht] -->
-<!--   \centering -->
-<!--   \begin{tabular}{p{1.45cm}p{4cm}p{1.55cm}|p{1.45cm}p{4cm}p{1.55cm}} -->
-<!--     \toprule -->
-<!--     Name & Label & Source & Name & Label & Source \\ -->
-<!--     \midrule -->
-<!--     \texttt{DR1TM161} & MFA 16:1 (Hexadecenoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TM181} & MFA 18:1 (Octadecenoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TM201} & MFA 20:1 (Eicosenoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TM221} & MFA 22:1 (Docosenoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TP182} & PFA 18:2 (Octadecadienoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TP183} & PFA 18:3 (Octadecatrienoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TP184} & PFA 18:4 (Octadecatetraenoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TP204} & PFA 20:4 (Eicosatetraenoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TP205} & PFA 20:5 (Eicosapentaenoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DR1TP225} & PFA 22:5 (Docosapentaenoic) (gm) & \texttt{DR1TOT\textunderscore J} \\ -->
-<!--     \texttt{DR1TP226} & PFA 22:6 (Docosahexaenoic) (gm) & \texttt{DR1TOT\textunderscore J} & \texttt{DIQ010} & Doctor told you have diabetes & \texttt{DIQ\textunderscore J} \\ -->
-<!--     \texttt{DIQ050} & Taking insulin now & \texttt{DIQ\textunderscore J} & \texttt{HIQ011} & Covered by health insurance & \texttt{HIQ\textunderscore J} \\ -->
-<!--     \bottomrule -->
-<!--   \end{tabular} -->
-<!--   \label{tab:variable_list2} -->
-<!-- \end{table} -->
+```{r visualization1, include=FALSE}
+scatter.matrix1 = ggpairs(FULLDATA[c("BPXLEVEL", "RIAGENDR", "RIDAGEYR", "RIDRETH3")], 
+        aes(color = BPXLEVEL)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 8),
+        axis.text.y = element_text(size = 7))
+pdf(file = "report_files/figure-latex/scattermatrix1.pdf", width = 8, height = 8)
+print(scatter.matrix1)
+dev.off()
+```
+```{r visualization1-embed, echo = FALSE, out.width = "250px", fig.align = "center", fig.cap = "Scatterplot Matrix of BPXLEVEL Against Some Demographic Information"}
+knitr::include_graphics("report_files/figure-latex/scattermatrix1.pdf")
+```
+  
+In Figure 1, we utilize a color-coded scheme to represent different blood pressure levels: red for normal and blue for elevated or hypertension. By examining the relationship between blood pressure levels (`BPXLEVEL`) and gender (`RIAGENDR`), noteworthy patterns emerge. The plot reveals a higher prevalence of elevated blood pressure and hypertension among male participants (coded as 1) compared to their female counterparts (coded as 2).
+
+Further exploration of blood pressure levels against age (`RIAGEYR`) reveals intriguing insights. The distributions indicate a skewed pattern, with individuals younger than 20 predominantly exhibiting normal blood pressure levels. However, a concerning trend is observed among those around 60 years old, who are more likely to have evevated blood pressure or hypertension. Thus, age emerges as a potential influential factor for predicting blood pressure levels in future models.
+
+Analyzing blood pressure levels against race (`RIDRETH3`) also unvails an interesting observation. While Mexican American (coded as 1), Non-Hispanic White (coded as 3), Non-Hispanic Asian (coded as 6), and other Hispanic and other races (including multi-racial) (coded 2 and 7) all have more occurences of normal blood pressure than elevated or hypertension, this is not true for Non-Hispanic Black individuals (coded as 4).
+
+```{r visualization2, include=FALSE}
+scatter.matrix2 = ggpairs(FULLDATA[c("BPXLEVEL", "DR1TCARB", "DR1TPROT", "DR1TFIBE",
+                                     "DR1TTFAT", "DR1TCHOL")], 
+        aes(color = BPXLEVEL)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 5),
+        axis.text.y = element_text(size = 5))
+pdf(file = "report_files/figure-latex/scattermatrix2.pdf", width = 10, height = 10)
+print(scatter.matrix2)
+dev.off()
+```
+```{r visualization2-embed, echo = FALSE, out.width = "250px", fig.align = "center", fig.cap = "Scatterplot Matrix of BPXLEVEL Against Marco Nutrient Intakes"}
+knitr::include_graphics("report_files/figure-latex/scattermatrix2.pdf")
+```
+
+Figure 2 uses the same color coding as previously described, and presents a scatter plot matrix investigating the potential impact of macro nutrient intake, including carbohydrates, proteins, fats, and cholesterol [@usda_2022_macronutrients], on blood pressure levels. Histograms of macro nutrient distributions across all three blood pressure levels reveal right-skewed patterns, suggesting no single macro nutrient significantly influences blood pressure.
+
+Notably, the analysis highlights substantial correlations among the macro nutrient variables. The highest correlation is observed between protein intake (`DR1TPROT`) and fat intake (`DR1TTFAT`), reaching 0.729. Additional pairs, such as protein intake (`DR1TPROT`) and daily fiber intake (`DR1TFIBE`) with a correlation of 0.684, indicate potential multicollinearity among predictor variables. This observation prompts caution when employing certain parametric modeling methods, such as logistic regression, which may be sensitive to multicollinearity issues.
+
+These findings allow for an intricate understanding of the dataset and emphasize the importance of considering demographic and nutritional factors in predicting blood pressure levels. Subsequent sections will delve deeper into statistical analyses and modeling techniques to derive actionable insights from the presented visualizations.
+
+# Results
+
+## Logistic Regression Model with Lasso Regularization
+
+The Logistic regression model was trained with various lasso regularization strengths, spanning a range from low to high values, using a 10-fold cross-validation strategy. The model's logistic deviance was documented for each regularization strength.
+
+```{r sofmax-cv, warning=FALSE, message=FALSE, cache=TRUE, include=FALSE}
+set.seed(88)
+# Softmax classification with 10 fold CV
+cvfit = cv.glmnet(train.X.mm, as.matrix(train.Y), family = "binomial", alpha=1)
+```
+```{r softmax-cv-plot, fig.align='center', out.width='275px', fig.cap='10-Fold Cross Validation Findinig the Best Lasso Penalty Term', echo=FALSE, fig.pos = "ht"}
+plot(cvfit)
+```
+
+Figure 3 helps identify the optimal $\lambda$ for the lasso penalty term of the logistic regression. We aim to get the $\lambda$ which minimizes the logistic deviance. By looking at the figure, we got the smallest logistic deviance when $\lambda$ = `r cvfit$lambda.min` and only `r cvfit$index[1]` predictors were selected by the lasso penalty, which is indicated by the vertical dash line on the left.
+
+```{r coefficient-table, include=FALSE}
+coef.df = as.data.frame(as.matrix(coef(cvfit, s = cvfit$lambda.min)))
+colnames(coef.df) = c("Coefficients")
+coef.df = coef.df %>% filter_all(all_vars(. != 0))
+```
+
+Table 3 shows all coefficients of our 43 predictors and the intercept of the model. Our logistic model should look like:
+
+$$
+\begin{aligned}
+\Pr(Y = 0 | X) &= \frac{\exp(2.2521848 + 0.1767172x_{\texttt{BPACSZ3}} - 0.0032227x_{\texttt{BPXxPLS}} + \cdots -0.0376808x_{\texttt{HIQ0119}})}{\sum_{i = 0}^2 \exp(\beta_{0i} + \beta_{1i}x_{\texttt{BPACSZ3}} + \beta_{2i}x_{\texttt{BPXPLS}} + \cdots + \beta_{43i}x_{\texttt{HIQ0119}})}, \\
+\Pr(Y = 1 | X) &= \frac{\exp(-0.6889857 - 0.1796646x_{\texttt{BPACSZ3}} - 0.0000035x_{\texttt{BPXPLS}} + \cdots + 0.0126395x_{\texttt{HIQ0119}})}{\sum_{i = 0}^2 \exp(\beta_{0i} + \beta_{1i}x_{\texttt{BPACSZ3}} + \beta_{2i}x_{\texttt{BPXPLS}} + \cdots + \beta_{43i}x_{\texttt{HIQ0119}})}
+\end{aligned}
+$$
+
+where
+
+$$
+\begin{aligned}
+&\sum_{i = 0}^2 \exp(\beta_{0i} + \beta_{1i}x_{\texttt{BPACSZ3}} + \beta_{2i}x_{\texttt{BPXPLS}} + \cdots + \beta_{43i}x_{\texttt{HIQ0119}}) \\
+=& \exp(2.2521848 + 0.1767172x_{\texttt{BPACSZ3}} - 0.0032227x_{\texttt{BPXPLS}} + \cdots -0.0376808x_{\texttt{HIQ0119}}) + \\
+ & \exp(-0.6889857 - 0.1796646x_{\texttt{BPACSZ3}} - 0.0000035x_{\texttt{BPXPLS}} + \cdots + 0.0126395x_{\texttt{HIQ0119}})
+\end{aligned}
+$$
+
+```{r softmax-result, include=FALSE, warning=FALSE, message=FALSE}
+cvfit$lambda.min
+cvfit$index
+softmax.predictions = predict(cvfit, newx = test.X.mm, 
+                              s = cvfit$lambda.min, type = "class")
+mean(softmax.predictions == test.Y)
+# ROC - AUC
+softmax.rocr = multiclass.roc(as.numeric(test.Y) - 1, 
+                              as.numeric(softmax.predictions) - 1)
+softmax.rocr$auc
+confusionMatrix(as.factor(softmax.predictions), test.Y)
+```
+
+In our logistic regression model, we achieved a test accuracy of 75.8% and the Area Under the Curve (AUC) was calculated as `r softmax.rocr$auc`, demonstrating the model's robust discriminative ability across the classes. These results establish a baseline for our future modeling efforts, showcasing the effectiveness of the logistic regression approach in capturing and understanding underlying patterns within the dataset.
+
+## XGBoost Model
+
+The XGBoost model was trained using Extreme Gradient Boosting with exact tree method, a powerful ensemble learning method. The following hyperparameters were modified and utilized in the model:
+
+- Learning Rate (eta): 0.005
+
+- Subsample: 0.75
+
+- Column Subsample: 0.8
+
+- Maximum Depth: 10
+
+- Number of Trees (Rounds): 35
+
+With these hyperparameters, we used 10-fold cross-validation to get a test accuracy of 68.08163% and an AUC of 0.6845. The test accuracy is 0.08163% higher than that of logistic regression model with lasso regularization, and the test AUC is `r 0.6845 - 0.6791` higher than that of logistic model. These indicate that the XGBoost model is slightly better than logistic regression model with lasso regularization when classifying the blood pressure levels.
+
+## XGBoost Model with Selected Predictors
+
+Figure 4 shows the Gain scores of the predictors used in the XGBoost model. A higher bar (higher Gain score) represents more important the predictor is. Notably, key predictors such as `RIDAGEYR` (age), `DMDHHSZB` (household size), and `BPXPLS` (pulse rate) emerged as significant contributors to the predictive power of the model.
+
+```{r xgb-model, warning=FALSE, message=FALSE, cache=TRUE, include=FALSE}
+# Gradient boosting with 10 fold CV
+xgboost.train = function(col) {
+  set.seed(88)
+  xgb.data = xgb.DMatrix(data = as.matrix(train.X.dummy[col]),
+                         label = recode(train.X.dummy$BPXLEVEL,
+                                        '0'=0, '1'=1, '2'=2))
+  xgb.test.X = data.matrix(test.X.dummy[col])
+  hyperparameters = list(
+    eta = 0.005,
+    subsample = 0.75,
+    col_subsample = 0.8,
+    max_depth = 10
+  )
+
+  params = list(
+    eta = hyperparameters$eta,
+    subsample = hyperparameters$subsample,
+    colsample_bytree = hyperparameters$col_subsample,
+    max_depth = hyperparameters$max_depth,
+    tree_method = "exact",
+    objective = "multi:softmax",
+    num_class = 3
+  )
+
+  cv.xgb = xgb.cv(
+    params = params,
+    data = xgb.data,
+    nfold = 10,
+    metrics = "merror",
+    verbose = 0,
+    nrounds = 35
+  )
+
+  eval.log = as.data.frame(cv.xgb$evaluation_log)
+  min.merror = min(eval.log[, 4])
+  min.merror.index = which.min(eval.log[, 4])
+  xgb.model = xgboost(params = params,
+                      data = xgb.data,
+                      nrounds = min.merror.index,
+                      verbose = 0)
+  xgb.predictions = predict(xgb.model, xgb.test.X)
+  return(list(xgb.model, xgb.predictions))
+}
+xgboost.all = xgboost.train(colnames(train.X.dummy)[2:14])
+mean(xgboost.all[[2]] == test.Y)
+multiclass.roc(as.numeric(test.Y) - 1,
+               as.numeric(xgboost.all[[2]]) - 1)$auc
+confusionMatrix(as.factor(xgboost.all[[2]]), test.Y)
+importance.matrix = xgb.importance(colnames(train.X.dummy)[2:14], model = xgboost.all[[1]])
+importance.matrix
+```
+
+```{r importance-plots1, include=FALSE}
+importance.plot = xgb.ggplot.importance(importance.matrix, measure = 'Gain') +
+  theme(legend.position = "none",
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 8),
+        axis.text.y = element_text(size = 10)) +
+  geom_bar(aes(fill = "blue"), stat = "identity") +
+  ylab("Gain") + coord_cartesian() + ggtitle("")
+pdf(file = "report_files/figure-latex/importance_plot.pdf", width = 10, height = 3.5)
+print(importance.plot)
+dev.off()
+```
+```{r importance-plots2, echo = FALSE, , fig.align='center', out.width='450px', fig.cap='Bar Plots of Gain Score of Each Feathure in the XGBoost Model'}
+knitr::include_graphics("report_files/figure-latex/importance_plot.pdf")
+```
+
+In our pursuit of refining the model and unveiling the most impactful predictors, we executed a meticulous feature selection process. We initiated this process by systematically eliminating predictors, starting with the least important (the one with the lowest Gain score), and subsequently assessed the impact on both test accuracy and AUC. This methodical stepwise elimination allowed us to pinpoint a subset of predictors that consistently upheld optimal predictive performance. During this process, we keep using the same hyperparameters we used in the original XGBoost model with 10-fold cross validation at each step.
+
+The results of this feature selection journey revealed a compelling trade-off between the number of predictors and predictive accuracy. Significantly, in figure 5, the model showcased a remarkable test accuracy of 68.08163% and an AUC of 0.6857238 even with just the top 17 most important predictors. This underscores the efficiency of the selected predictors in encapsulating crucial information for the accurate prediction of health outcomes. As indicated by the red dash line in figure 5, the model achieved the highest test accuracy of 68.65306% and the highest AUC of 0.6887414 with the top 35 predictors.
+
+```{r xgb-feature-select, warning=FALSE, message=FALSE, cache=TRUE, include=FALSE}
+threshold = sort(importance.matrix$Gain)
+n.feature = seq(length(importance.matrix$Gain))
+threshold.importance = c()
+test.accuracy = c()
+test.auc = c()
+for (i in 1:length(threshold)) {
+  selected.features = importance.matrix$Feature[which(importance.matrix$Gain >= threshold[i])]
+  xgboost.all = xgboost.train(selected.features)
+  accuracy = mean(xgboost.all[[2]] == test.Y)
+  auc = multiclass.roc(as.numeric(test.Y) - 1,
+                       as.numeric(xgboost.all[[2]]) - 1)$auc
+  threshold.importance[i] = threshold[i]
+  test.accuracy[i] = accuracy
+  test.auc[i] = auc
+}
+```
+
+```{r xgb-plot, warning=FALSE, include=FALSE}
+df.xgb = data.frame(n.feature = sort(n.feature, decreasing = TRUE),
+                    threshold.importance = threshold.importance,
+                    test.accuracy = test.accuracy,
+                    test.auc = test.auc)
+xgb.accuracy = ggplot(df.xgb, aes(x = n.feature, y = test.accuracy)) +
+  geom_line() +
+  geom_vline(xintercept = df.xgb$n.feature[which.max(df.xgb$test.accuracy)],
+             linetype = "dashed", color = "red") +
+  geom_hline(yintercept = mean(df.xgb$test.accuracy), linetype = "dashed", color = "blue") +
+  geom_text(aes(label = sprintf("Avg Accuracy: %.3f", mean(df.xgb$test.accuracy))),
+            x = max(df.xgb$threshold.importance), y = mean(df.xgb$test.accuracy),
+            vjust = 1, hjust = -1.5, color = "blue") +
+  geom_text(aes(label = sprintf("Number of predictors: %d", df.xgb$n.feature[which.max(df.xgb$test.accuracy)])),
+            x = df.xgb$n.feature[which.max(df.xgb$test.accuracy)],
+            y = max(df.xgb$test.accuracy),
+            vjust = 20, hjust = 1, color = "red") +
+  labs(x = "Number of Predictors",
+       y = "Accuracy")
+xgb.auc = ggplot(df.xgb, aes(x = n.feature, y = test.auc)) +
+  geom_line() +
+  geom_vline(xintercept = df.xgb$n.feature[which.max(df.xgb$test.auc)],
+             linetype = "dashed", color = "red") +
+  geom_hline(yintercept = mean(df.xgb$test.auc), linetype = "dashed", color = "blue") +
+  geom_text(aes(label = sprintf("Avg AUC: %.3f", mean(df.xgb$test.auc))),
+            x = max(df.xgb$threshold.importance), y = mean(df.xgb$test.auc),
+            vjust = 1, hjust = -2.5, color = "blue") +
+  geom_text(aes(label = sprintf("Number of predictors: %d", df.xgb$n.feature[which.max(df.xgb$test.auc)])),
+            x = df.xgb$n.feature[which.max(df.xgb$test.auc)],
+            y = max(df.xgb$test.auc),
+            vjust = 20, hjust = 1, color = "red") +
+  labs(x = "Number of Predictors",
+       y = "AUC")
+xgb.plots = (xgb.accuracy | xgb.auc)
+pdf(file = "report_files/figure-latex/xgb_plots.pdf", width = 10, height = 4)
+print(xgb.plots)
+dev.off()
+```
+```{r xgb-plot-embed, echo = FALSE, out.width = "400px", fig.align = "center", fig.cap = "XGBoost Model Test Accuracy and AUC from 1 Predictor to 88 Predictors"}
+knitr::include_graphics("report_files/figure-latex/xgb_plots.pdf")
+```
+
+Table 4 provides a comprehensive overview of the top predictors identified by the XGBoost model with test accuracy higher than 68.08163%, presenting their corresponding threshold Gain scores, accuracy, and AUC values. The table is thoughtfully organized, with entries sorted based on descending test accuracy, prioritizing higher accuracy models. In cases of ties, the sorting is further refined by considering descending AUC values and, if necessary, the top number of predictors in descending order.
+
+```{r xgb-select-coef-table, include=FALSE}
+df.xgb %>% arrange(desc(test.accuracy), desc(test.auc), desc(n.feature))
+```
+
+Our focus lies on the accuracy and AUC metrics, and, based on these, the model with the top 35 most important predictors stands out as the preferred choice.
+
+Among these 35 selected predictors, there are 20 predictors selected by both the logistic model and the XGBoost model. These predictors are `RIDAGEYR`, `BPXPLS`, `DMDHHSZB`, `RIAGENDR2`, `BPACSZ5`, `DR1TMOIS`, `DMDHHSZE`, `DR1TSUGR`, `DR1TVC`, `DR1TP204`, `DR1TLYCO`, `DR1TCHOL`, `DR1TVB6`, `DR1TACAR`, `DR1TM201`, `DR1TVB12`, `DR1TVD`, `DR1TM221`, `DR1TATOC`, and `DR1TNUMF`. Since both models selected these predictors, indicating the importance of these predictors on predicting blood pressure levels. The other 15 predictors selected by the XGBoost model but not the logistic model are `DR1TVK`, `DR1TCAFF`, `DR1TBCAR`, `DR1TLZ`, `DR1TCRYP`, `DR1TP183`, `DR1TVB2`, `DR1TSODI`, `DR1TFF`, `DR1TPFAT`, `DR1TCARB`, `DR1TVARA`, `DR1TFA`, `DR1TCALC`, and `DR1TFIBE`.
+
+```{r predictor-finding, include=FALSE}
+intersection = intersect(unname(unlist(importance.matrix[1:35, 1])),
+                         rownames(coef.df))
+intersection
+setdiff(unname(unlist(importance.matrix[1:35, 1])), intersection)
+```
+
+This model exhibits higher increases in accuracy, with 0.65306% and 0.57143% improvements compared to the logistic regression model with lasso regularization and the XGBoost model using all predictors, respectively. Moreover, it demonstrates a `r 0.6887414 - 0.6791` and `r 0.6887414 - 0.6845` increase in AUC compared to the logistic regression model with lasso regularization and the XGBoost model using all predictors, respectively.
+
+Our systematic approach to feature selection not only fine-tuned the model but also provided insightful perspectives on the pivotal factors influencing its predictive power. This enhanced interpretability contributes to a more robust and effective health outcome prediction system.
