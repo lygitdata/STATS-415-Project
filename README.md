@@ -3,4 +3,4 @@ This repository contains all materials used for Fall 2023 STATS 415 final projec
 
 Please refer to the project homepage for more detail: https://lygitdata.github.io/STATS-415-Project/
 
-[cc-by-nc-sa-shield]: https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg
+[cc-by-nc-sa]: http://creativecommons.org/licenses/by-nc-sa/4.0/
